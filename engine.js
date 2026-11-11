@@ -10,7 +10,7 @@ export const sampleFields = [
 export const sampleBook = {name:'Contoh_Data_Migrasi_Aset.xlsx',sheets:[{name:'Aset',rows:[sampleFields.map(f=>f.name),['OPERASI',2020,'',''],['DITARIK',0,'','SN02'],['DITARIK',2018,'09-05-2024',''],['',2016,'','SN04']]}]};
 export function inputFromBook(book,sheetName,header=1){
  const sheet=book.sheets.find(s=>s.name===sheetName)||book.sheets[0];
- const headers=(sheet.rows[header-1]||[]).map(v=>String(v??'').trim());
+ const headers=Array.from(sheet.rows[header-1]||[],v=>String(v??'').trim());
  const rows=sheet.rows.slice(header).map((values,i)=>({row:header+i+1,values})).filter(r=>r.values.some(v=>!empty(v)));
  return {name:book.name,sheet:sheet.name,header,headers,rows,book:clone(book)};
 }

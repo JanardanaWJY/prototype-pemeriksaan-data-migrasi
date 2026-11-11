@@ -4,7 +4,7 @@ Prototipe interaktif untuk mendemonstrasikan pembuatan acuan, pemeriksaan Excel,
 
 ## Menjalankan demo
 
-Buka situs melalui GitHub Pages setelah workflow **Test and deploy prototype** selesai. Jika penerbitan otomatis belum dapat mengaktifkan Pages, buka **Settings → Pages → Source: GitHub Actions**, lalu jalankan ulang workflow dari tab Actions.
+Buka situs melalui GitHub Pages setelah workflow **Test and deploy prototype** selesai. Aktifkan Pages satu kali dengan membuka **Settings → Pages → Source: GitHub Actions**, lalu jalankan workflow dari tab Actions. Jika Pages belum aktif, tes tetap berjalan dan tahap deploy dilewati.
 
 Untuk menjalankan di komputer sendiri:
 
