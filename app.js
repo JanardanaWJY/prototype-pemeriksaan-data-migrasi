@@ -1,5 +1,6 @@
 import {clone,empty,types,sampleFields,sampleBook,inputFromBook,validateFields,examine,rulesText,canAccess,groupExams,seed} from './engine.js';
 import {download,readWorkbook,workbookBlob,fieldsFromBook,referenceSheets,createBA} from './files.js';
+import {templateAcuanFinalBlob} from './template-acuan-final.js';
 const $=s=>document.querySelector(s),KEY='pemeriksaan-prototype-v3';
 let db;try{db=JSON.parse(localStorage.getItem(KEY))||seed();}catch{db=seed();}
 let uid=sessionStorage.getItem('demo-user')??'rina',ui={},draft=null,setup=null,dialogAction=null,timer=null,progress=0,runStart=0;
@@ -111,7 +112,7 @@ const actions={
  'save-draft':()=>{persistDraft();toast('Draf berhasil disimpan.');},'validate-draft':()=>{draft.validated=true;persistDraft();render();toast(validateFields(draft.name,draft.fields).length?'Ada konfigurasi yang perlu diperbaiki.':'Konfigurasi valid. Acuan siap ditinjau.');},'preview-publish':previewPublish,
  'publish':()=>{const errors=validateFields(draft.name,draft.fields);if(errors.length){close();render();return;}const ref={id:'ref-'+Date.now(),family:draft.family||'family-'+Date.now(),name:draft.name.trim(),description:draft.description,fields:clone(draft.fields),owner:uid,version:draft.family?Math.max(...db.refs.filter(r=>r.family===draft.family).map(r=>r.version))+1:1,published:new Date().toISOString()};db.refs.push(ref);db.drafts=db.drafts.filter(d=>d.id!==draft.id);log('Menerbitkan acuan',ref.name+' v'+ref.version);draft=null;close();go('acuan/lihat/'+ref.id);toast('Acuan berhasil diterbitkan.');},
  'delete-draft':id=>confirmAction('Hapus draf?','Draf yang belum diterbitkan ini akan dihapus.',()=>{db.drafts=db.drafts.filter(d=>d.id!==id||d.owner!==uid);save();render();},'Hapus Draf',true),
- 'template':async()=>{download(await workbookBlob(referenceSheets({name:'',description:'',fields:[]})),'Template_Acuan.xlsx');toast('Template Excel diunduh.');},
+ 'template':()=>{download(templateAcuanFinalBlob(),'Template_Acuan.xlsx');toast('Template Excel diunduh.');},
  'download-ref':async id=>{const r=db.refs.find(r=>r.id===id);download(await workbookBlob(referenceSheets(r)),`${r.name.replace(/[^a-z0-9]/gi,'_')}_v${r.version}.xlsx`);},
  'download-sample':async()=>download(await workbookBlob(sampleBook.sheets),sampleBook.name),
  'import-data':()=>pickFile(book=>{setup??=freshSetup();setup.book=book;setup.sheet=book.sheets[0].name;setup.header=1;render();toast('File data siap ditinjau.');}),
