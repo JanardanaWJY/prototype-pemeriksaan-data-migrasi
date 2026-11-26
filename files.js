@@ -5,7 +5,7 @@ const colName = n => {let s='';for(n++;n;n=Math.floor((n-1)/26))s=String.fromCha
 export function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 export async function readWorkbook(file){
  if(!/\.xlsx$/i.test(file.name))throw new Error('Gunakan file Excel berformat .xlsx.');
- if(file.size>15*1024*1024)throw new Error('Batas file pada prototipe ini adalah 15 MB.');
+ if(file.size>50*1024*1024)throw new Error('Batas file pada prototipe ini adalah 50 MB.');
  const zip=await JSZip.loadAsync(file),get=async p=>{const item=zip.file(p);if(!item)throw new Error('Struktur file Excel tidak lengkap.');return parseXML(await item.async('string'));};
  const wb=await get('xl/workbook.xml'),rels=await get('xl/_rels/workbook.xml.rels'),targets={};nodes(rels,'Relationship').forEach(r=>targets[r.getAttribute('Id')]=r.getAttribute('Target'));
  let strings=[];if(zip.file('xl/sharedStrings.xml'))strings=nodes(await get('xl/sharedStrings.xml'),'si').map(si=>nodes(si,'t').map(t=>t.textContent).join(''));
