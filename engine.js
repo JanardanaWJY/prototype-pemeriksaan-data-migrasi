@@ -12,7 +12,13 @@ export function inputFromBook(book,sheetName,header=1){
  const sheet=book.sheets.find(s=>s.name===sheetName)||book.sheets[0];
  const headers=Array.from(sheet.rows[header-1]||[],v=>String(v??'').trim());
  const rows=sheet.rows.slice(header).map((values,i)=>({row:header+i+1,values})).filter(r=>r.values.some(v=>!empty(v)));
- return {name:book.name,sheet:sheet.name,header,headers,rows,book:clone(book)};
+ const storedBook=clone(book);delete storedBook.originalBase64;
+ return {name:book.name,sheet:sheet.name,header,headers,rows,book:storedBook};
+}
+export function prototypeDurationMs(input,ref){
+ const ruleCount=Math.max(1,ref.fields.filter(f=>f.column).length);
+ const checkedCells=input.rows.length*ruleCount;
+ return Math.min(30000,Math.max(3000,Math.round(2500+checkedCells/50000*1000)));
 }
 export function validateFields(name,fields){
  const errors=[];if(!name.trim())errors.push('Nama acuan wajib diisi.');if(!fields.length)errors.push('Tambahkan sedikitnya satu field.');
