@@ -51,9 +51,9 @@ Hasil dengan versi acuan, sheet, header, dan isi data identik dikelompokkan; han
 
 Ini frontend untuk demonstrasi, **belum sistem produksi**. Akun, akses, dan penyimpanan disimulasikan di browser melalui localStorage/sessionStorage. Tidak ada autentikasi server, penyimpanan bersama, atau pembagian hasil antarperangkat. Jangan gunakan data rahasia atau password sungguhan. Batas kapasitas penyimpanan mengikuti browser; file besar mungkin hanya bertahan selama sesi.
 
-Pembaca XLSX mendukung nilai sel, shared strings, inline strings, serta tanggal Excel umum. Formula menggunakan nilai cache yang tersimpan oleh Excel; prototipe tidak menghitung ulang formula. Format tanggal 1904, macro, file terenkripsi, formula tanpa cache, dan file sangat besar bukan sasaran demo. Unggahan dibatasi 50 MB. Baris data yang seluruhnya kosong diabaikan; nomor baris asli dipertahankan. File asli yang diunggah dipertahankan untuk unduhan; contoh bawaan direkonstruksi sebagai XLSX.
+Pembaca XLSX mendukung nilai sel, shared strings, inline strings, string formula, serta tanggal Excel umum. Formula menggunakan nilai cache yang tersimpan oleh Excel; prototipe tidak menghitung ulang formula. Format tanggal 1904, macro, file terenkripsi, dan formula tanpa cache bukan sasaran demo. Unggahan dibatasi 50 MB. Baris data yang seluruhnya kosong diabaikan; nomor baris asli dipertahankan. Agar riwayat file besar tidak melampaui kapasitas localStorage, salinan base64 file tidak disimpan; unduhan direkonstruksi dari workbook yang telah dibaca.
 
-Durasi pemeriksaan baru menunjukkan waktu simulasi browser, bukan tolok ukur performa backend. Durasi historis pada contoh merupakan data ilustrasi. BA adalah contoh dokumen yang mengambil ringkasan hasil dan identitas pemeriksa; file BA tidak disimpan dalam riwayat aplikasi. PDF memakai font Latin standar.
+Durasi pemeriksaan baru merupakan simulasi browser yang mengikuti jumlah baris dan aturan aktif, dengan batas 3–30 detik; angka tersebut bukan tolok ukur performa backend. Durasi historis pada contoh merupakan data ilustrasi. BA adalah contoh dokumen yang mengambil ringkasan hasil dan identitas pemeriksa; file BA tidak disimpan dalam riwayat aplikasi. PDF memakai font Latin standar.
 
 ## Pengujian
 
@@ -61,7 +61,7 @@ Durasi pemeriksaan baru menunjukkan waktu simulasi browser, bukan tolok ukur per
 npm test
 ```
 
-Tes mencakup angka contoh wireframe, kolom hilang, dua dependensi bersyarat, nol, duplikat, posisi baris Excel, validasi konfigurasi, tanggal, akses admin, dan pengelompokan input identik.
+Tes mencakup angka contoh wireframe, kolom hilang, dua dependensi bersyarat, nol, duplikat, posisi baris Excel, validasi konfigurasi, tanggal, akses admin, pengelompokan input identik, pembacaan string XLSX, penskalaan durasi, dan penyimpanan workbook besar.
 
 ## Struktur
 
