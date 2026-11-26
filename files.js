@@ -2,11 +2,23 @@ const xmlEscape = v => String(v??'').replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt
 const parseXML = s => new DOMParser().parseFromString(s,'application/xml');
 const nodes = (root,tag) => [...root.getElementsByTagNameNS('*',tag)];
 const colName = n => {let s='';for(n++;n;n=Math.floor((n-1)/26))s=String.fromCharCode(65+(n-1)%26)+s;return s;};
+export function decodeCellValue(type,raw,inlineText='',dateStyle=false){
+ if(type==='s')return raw;
+ if(type==='inlineStr')return inlineText;
+ if(type==='b')return raw==='1'?'TRUE':'FALSE';
+ if((!type||type==='n')&&raw!==''){
+  const value=Number(raw);if(!Number.isFinite(value))return raw;
+  if(dateStyle){const d=new Date(Date.UTC(1899,11,30)+value*86400000);return `${String(d.getUTCDate()).padStart(2,'0')}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${d.getUTCFullYear()}`;}
+  return value;
+ }
+ // Artifact Tool and some Excel writers use t="str" with the value in <v>.
+ return raw;
+}
 export function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 export async function readWorkbook(file){
  if(!/\.xlsx$/i.test(file.name))throw new Error('Gunakan file Excel berformat .xlsx.');
  if(file.size>50*1024*1024)throw new Error('Batas file pada prototipe ini adalah 50 MB.');
- const zip=await JSZip.loadAsync(file),get=async p=>{const item=zip.file(p);if(!item)throw new Error('Struktur file Excel tidak lengkap.');return parseXML(await item.async('string'));};
+ const zip=await JSZip.loadAsync(file),get=async p=>{const item=zip.file(p);if(!item)throw new Error('Struktur file Excel tidak lengkap.');const doc=parseXML(await item.async('string'));if(nodes(doc,'parsererror').length)throw new Error('Ada bagian file Excel yang tidak dapat dibaca.');return doc;};
  const wb=await get('xl/workbook.xml'),rels=await get('xl/_rels/workbook.xml.rels'),targets={};nodes(rels,'Relationship').forEach(r=>targets[r.getAttribute('Id')]=r.getAttribute('Target'));
  let strings=[];if(zip.file('xl/sharedStrings.xml'))strings=nodes(await get('xl/sharedStrings.xml'),'si').map(si=>nodes(si,'t').map(t=>t.textContent).join(''));
  let dateStyles=[];if(zip.file('xl/styles.xml')){const styles=await get('xl/styles.xml'),formats={};nodes(styles,'numFmt').forEach(n=>formats[n.getAttribute('numFmtId')]=n.getAttribute('formatCode'));const xfs=nodes(styles,'cellXfs')[0];dateStyles=xfs?nodes(xfs,'xf').map(x=>{const n=Number(x.getAttribute('numFmtId'));return [14,15,16,17,22].includes(n)||/[dy]/i.test((formats[n]||'').replace(/"[^"]*"/g,''));}):[];}
@@ -14,8 +26,8 @@ export async function readWorkbook(file){
   const rel=s.getAttribute('r:id'),target=targets[rel];if(!target)continue;
   const path=target.startsWith('/')?target.slice(1):`xl/${target}`;const doc=await get(path.replace('xl/xl/','xl/'));const rows=[];
   nodes(doc,'row').forEach(row=>{const vals=[];nodes(row,'c').forEach(c=>{const ref=c.getAttribute('r')||'A1';let idx=0;for(const ch of ref.replace(/[0-9]/g,''))idx=idx*26+ch.charCodeAt(0)-64;idx--;
-   const type=c.getAttribute('t'),raw=nodes(c,'v')[0]?.textContent??'';let value=type==='s'?strings[Number(raw)]||'':type==='inlineStr'?nodes(c,'t').map(t=>t.textContent).join(''):type==='b'?raw==='1'?'TRUE':'FALSE':raw;
-   if(raw!==''&&(!type||type==='n')){value=Number(raw);if(dateStyles[Number(c.getAttribute('s')||0)]){const d=new Date(Date.UTC(1899,11,30)+value*86400000);value=`${String(d.getUTCDate()).padStart(2,'0')}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${d.getUTCFullYear()}`;}}
+   const type=c.getAttribute('t'),raw=nodes(c,'v')[0]?.textContent??'',inline=nodes(c,'t').map(t=>t.textContent).join('');let value=decodeCellValue(type,raw,inline,dateStyles[Number(c.getAttribute('s')||0)]);
+   if(type==='s')value=strings[Number(raw)]??'';
    vals[idx]=value;
   });rows[Number(row.getAttribute('r')||rows.length+1)-1]=vals;});
   sheets.push({name:s.getAttribute('name'),rows:Array.from({length:rows.length},(_,i)=>rows[i]||[])});
