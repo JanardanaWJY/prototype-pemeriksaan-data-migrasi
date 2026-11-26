@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {seed,clone,examine,validateFields,sampleFields,sampleBook,inputFromBook,canAccess,groupExams} from '../engine.js';
+import {seed,clone,examine,validateFields,sampleFields,sampleBook,inputFromBook,prototypeDurationMs,canAccess,groupExams} from '../engine.js';
 const ref={fields:sampleFields};
 test('contoh wireframe: 4 baris, 2 perbaikan, 8/10 wajib terisi',()=>{const r=examine(inputFromBook(sampleBook,'Aset'),ref);assert.deepEqual([r.total,r.bad,r.good,r.filled,r.required,r.findings.length,r.pending.length],[4,2,2,8,10,3,1]);assert.equal(r.pending[0].row,5);});
 test('kolom wajib hilang menjadi temuan dan seluruh baris bermasalah',()=>{const inp=inputFromBook(sampleBook,'Aset');inp.headers[1]='Tahun';const r=examine(inp,ref);assert.equal(r.bad,4);assert.equal(r.findings.filter(f=>f.reason==='Kolom tidak tersedia').length,1);assert.equal(r.filled,4);});
@@ -12,3 +12,5 @@ test('validasi konfigurasi menolak nama duplikat dan kondisi yang tidak ada',()=
 test('tanggal tidak nyata ditolak, tanggal kabisat sah diterima',()=>{const f={name:'Tanggal',type:'date',format:'DD-MM-YYYY',column:true,required:'always',values:[]};const r=examine({headers:['Tanggal'],rows:[{row:2,values:['31-02-2024']},{row:3,values:['29-02-2024']}]},{fields:[f]});assert.equal(r.bad,1);});
 test('admin tidak memiliki akses otomatis ke pemeriksaan privat',()=>{const e=seed().exams.find(e=>e.id==='P-004');assert.equal(canAccess(e,'admin'),false);e.share='selected';e.recipients=['budi'];assert.equal(canAccess(e,'budi'),true);assert.equal(canAccess(e,'admin'),false);});
 test('kelompok identik menampilkan terbaru, perubahan data terpisah',()=>{const db=seed();const groups=groupExams(db.exams);assert.equal(groups.length,3);assert.equal(groups.find(g=>g.length===2)[0].id,'P-004');});
+test('durasi prototipe mengikuti jumlah sel dan dibatasi 30 detik',()=>{const ref={fields:Array.from({length:26},(_,i)=>({name:String(i),column:true}))};assert.equal(prototypeDurationMs({rows:Array(30000)},ref),18100);assert.equal(prototypeDurationMs({rows:Array(4)},ref),3000);assert.equal(prototypeDurationMs({rows:Array(1000000)},ref),30000);});
+test('salinan input tidak menyimpan base64 file besar',()=>{const book={name:'uji.xlsx',originalBase64:'besar',sheets:[{name:'Data',rows:[['Kode'],['A']]}]};const input=inputFromBook(book,'Data',1);assert.equal(input.book.originalBase64,undefined);assert.equal(book.originalBase64,'besar');});
