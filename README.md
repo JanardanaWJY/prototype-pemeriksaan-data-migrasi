@@ -43,9 +43,9 @@ Tombol **Panduan demo** menyediakan langkah singkat dan reset data. Akun awal: `
 
 ## Perhitungan dan batas prototipe
 
-Aturan yang dijalankan: keberadaan kolom, wajib isi, tipe data, nol, batas angka, daftar nilai, keunikan satu field, serta wajib isi bersyarat berdasarkan satu field penentu. Nama kolom dicocokkan secara tepat setelah spasi awal/akhir dihapus. Nilai daftar bersifat case-sensitive. Angka desimal menggunakan titik. Tanggal mengikuti format pada acuan.
+Aturan yang dijalankan: keberadaan kolom, wajib isi, tipe data, nol, batas angka, daftar nilai, keunikan satu field, serta wajib isi bersyarat berdasarkan satu atau lebih field penentu. Seluruh kondisi untuk satu field target selalu dihubungkan dengan AND, sehingga kewajiban berlaku hanya jika semuanya terpenuhi. Template Excel menempatkan rinciannya pada sheet **Kondisi Bersyarat**. Nama kolom dicocokkan secara tepat setelah spasi awal/akhir dihapus. Nilai daftar bersifat case-sensitive. Angka desimal menggunakan titik. Tanggal mengikuti format pada acuan.
 
-Baris bermasalah dihitung sekali meskipun mempunyai beberapa temuan. Angka kelengkapan adalah sel wajib terisi / sel yang diketahui wajib. Nol tetap terisi. Saat field penentu kosong atau tidak valid, kewajiban bersyarat belum dimasukkan ke penyebut dan dicatat sebagai kondisi belum dapat dinilai. Baris tersebut perlu diperbaiki. Kolom tambahan dicatat sebagai temuan tingkat kolom, bukan temuan tiap baris.
+Baris bermasalah dihitung sekali meskipun mempunyai beberapa temuan. Angka kelengkapan adalah sel wajib terisi / sel yang diketahui wajib. Nol tetap terisi. Saat salah satu field penentu kosong atau tidak valid, kewajiban bersyarat belum dimasukkan ke penyebut dan dicatat sebagai kondisi belum dapat dinilai. Baris tersebut perlu diperbaiki. Kolom tambahan dicatat sebagai temuan tingkat kolom, bukan temuan tiap baris.
 
 Hasil dengan versi acuan, sheet, header, dan isi data identik dikelompokkan; hanya yang terbaru ditampilkan di daftar, sedangkan riwayat kelompok tetap dapat dibuka. Pengelompokan hanya menggunakan hasil yang boleh diakses pengguna aktif. Tidak tersedia fitur membandingkan dua pemeriksaan.
 
