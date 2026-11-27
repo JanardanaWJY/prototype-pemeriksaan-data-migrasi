@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {decodeCellValue} from '../files.js';
+import {decodeCellValue,fieldsFromBook,referenceSheets} from '../files.js';
 
 test('parser membaca string Excel bertipe str',()=>{assert.equal(decodeCellValue('str','AKTIF'),'AKTIF');assert.equal(decodeCellValue('str','31-02-2020'),'31-02-2020');});
 test('parser membaca angka nol, boolean, inline string, dan tanggal',()=>{assert.equal(decodeCellValue('n','0'),0);assert.equal(decodeCellValue('b','1'),'TRUE');assert.equal(decodeCellValue('inlineStr','', 'KABEL'),'KABEL');assert.equal(decodeCellValue('n','43831','',true),'01-01-2020');});
+test('template acuan memisahkan beberapa kondisi AND pada sheet tersendiri',()=>{const ref={name:'Uji',description:'Dua kondisi',fields:[{name:'Status',type:'text',column:true,required:'never',values:['DITARIK']},{name:'Jenis',type:'text',column:true,required:'never',values:['TRAFO']},{name:'Tanggal',type:'date',column:true,required:'conditional',conditions:[{field:'Status',value:'DITARIK'},{field:'Jenis',value:'TRAFO'}],values:[]}]};const sheets=referenceSheets(ref);assert.deepEqual(sheets.map(s=>s.name),['Petunjuk','Identitas','Field','Kondisi Bersyarat']);assert.equal(sheets[3].rows.length,3);const parsed=fieldsFromBook({name:'uji.xlsx',sheets});assert.deepEqual(parsed.fields[2].conditions,ref.fields[2].conditions);});
+test('impor menolak hubungan kondisi selain AND',()=>{const sheets=[{name:'Field',rows:[['Nama Field','Tipe Data','Wajib Kolom','Wajib Isi'],['Status','text','Ya','Tidak'],['Tanggal','date','Ya','Bersyarat']]},{name:'Kondisi Bersyarat',rows:[['Field Target','Urutan Kondisi','Field Penentu','Nilai Kondisi','Hubungan'],['Tanggal',1,'Status','DITARIK','OR']]}];assert.throws(()=>fieldsFromBook({name:'uji.xlsx',sheets}),/hanya AND/);});
