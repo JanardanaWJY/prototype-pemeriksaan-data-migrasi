@@ -1,10 +1,15 @@
 export const clone = x => JSON.parse(JSON.stringify(x));
 export const empty = x => x === null || x === undefined || String(x).trim() === '';
 export const types = {text:'Teks',integer:'Bilangan bulat',decimal:'Desimal',date:'Tanggal',boolean:'Boolean'};
+export function conditionsOf(field){
+ if(Array.isArray(field.conditions)&&field.conditions.length)return field.conditions.map(c=>({field:String(c.field??'').trim(),value:String(c.value??'').trim()}));
+ if(!empty(field.conditionField)||!empty(field.conditionValue))return [{field:String(field.conditionField??'').trim(),value:String(field.conditionValue??'').trim()}];
+ return [];
+}
 export const sampleFields = [
   {name:'Status',type:'text',column:true,required:'always',values:['OPERASI','DITARIK'],zero:true,unique:false},
   {name:'Tahun Manufaktur',type:'integer',column:true,required:'always',values:[],zero:false,unique:false},
-  {name:'Tanggal Penarikan',type:'date',column:true,required:'conditional',conditionField:'Status',conditionValue:'DITARIK',format:'DD-MM-YYYY',values:[],zero:true,unique:false},
+  {name:'Tanggal Penarikan',type:'date',column:true,required:'conditional',conditions:[{field:'Status',value:'DITARIK'}],format:'DD-MM-YYYY',values:[],zero:true,unique:false},
   {name:'Nomor Seri',type:'text',column:false,required:'never',values:[],zero:true,unique:false}
 ];
 export const sampleBook = {name:'Contoh_Data_Migrasi_Aset.xlsx',sheets:[{name:'Aset',rows:[sampleFields.map(f=>f.name),['OPERASI',2020,'',''],['DITARIK',0,'','SN02'],['DITARIK',2018,'09-05-2024',''],['',2016,'','SN04']]}]};
@@ -34,10 +39,15 @@ export function validateFields(name,fields){
   if(!empty(f.min)&&!empty(f.max)&&Number(f.min)>Number(f.max))errors.push(`${label}: minimum tidak boleh melebihi maksimum.`);
   if((!empty(f.min)||!empty(f.max))&&!['integer','decimal'].includes(f.type))errors.push(`${label}: batas angka hanya untuk tipe bilangan.`);
   if(f.required==='conditional'){
-   const source=fields.find(x=>x.name===f.conditionField);
-   if(!source||source.name===f.name)errors.push(`${label}: pilih field penentu lain yang tersedia.`);
-   if(empty(f.conditionValue))errors.push(`${label}: isi nilai kondisi.`);
-   if(source?.values?.length&&!source.values.includes(f.conditionValue))errors.push(`${label}: nilai kondisi harus ada pada daftar nilai ${source.name}.`);
+   const conditions=conditionsOf(f);
+   if(!conditions.length)errors.push(`${label}: tambahkan sedikitnya satu kondisi penentu.`);
+   if(new Set(conditions.map(c=>c.field)).size!==conditions.length)errors.push(`${label}: field penentu tidak boleh digunakan lebih dari sekali.`);
+   conditions.forEach((condition,index)=>{
+    const source=fields.find(x=>x.name===condition.field),conditionLabel=`kondisi ${index+1}`;
+    if(!source||source.name===f.name)errors.push(`${label}: ${conditionLabel} harus memakai field penentu lain yang tersedia.`);
+    if(empty(condition.value))errors.push(`${label}: isi nilai pada ${conditionLabel}.`);
+    if(source?.values?.length&&!source.values.includes(condition.value))errors.push(`${label}: nilai ${conditionLabel} harus ada pada daftar nilai ${source.name}.`);
+   });
   }
  });return [...new Set(errors)];
 }
@@ -61,11 +71,12 @@ export function examine(input,ref){
  input.rows.forEach(r=>ref.fields.forEach(f=>{
   const idx=input.headers.indexOf(f.name),v=r.values[idx];if(idx<0&&!f.column)return;let must=f.required==='always';
   if(f.required==='conditional'){
-   const source=ref.fields.find(x=>x.name===f.conditionField),sv=r.values[input.headers.indexOf(f.conditionField)];
-   if(empty(sv)||source&&(!isTyped(sv,source)||source.values?.length&&!source.values.includes(String(sv)))){pending.push({row:r.row,field:f.name,source:f.conditionField});badRows.add(r.row);}
-   else must=String(sv)===f.conditionValue;
+   const conditions=conditionsOf(f),evaluated=conditions.map(condition=>{const source=ref.fields.find(x=>x.name===condition.field),actual=r.values[input.headers.indexOf(condition.field)];const valid=!empty(actual)&&(!source||(isTyped(actual,source)&&(!source.values?.length||source.values.includes(String(actual)))));return {field:condition.field,expected:condition.value,source,actual,valid};});
+   const invalid=evaluated.filter(c=>!c.valid);
+   if(invalid.length){const sources=invalid.map(c=>c.field);pending.push({row:r.row,field:f.name,sources,source:sources.join(', ')});badRows.add(r.row);}
+   else must=evaluated.length>0&&evaluated.every(c=>String(c.actual)===c.expected);
   }
-  if(must){required++;if(!empty(v))filled++;else if(idx>=0)add(r.row,f.name,v,f.required==='conditional'?`Wajib diisi karena ${f.conditionField} = ${f.conditionValue}`:'Wajib diisi');}
+  if(must){required++;if(!empty(v))filled++;else if(idx>=0)add(r.row,f.name,v,f.required==='conditional'?`Wajib diisi karena ${conditionsOf(f).map(c=>`${c.field} = ${c.value}`).join(' DAN ')}`:'Wajib diisi');}
   if(idx<0||empty(v))return;
   if(!isTyped(v,f))add(r.row,f.name,v,`Harus berupa ${types[f.type]?.toLowerCase()||'tipe yang ditentukan'}${f.type==='date'?` (${f.format||'DD-MM-YYYY'})`:''}`);
   if(['integer','decimal'].includes(f.type)&&Number(v)===0&&!f.zero)add(r.row,f.name,v,'Nilai nol tidak diizinkan');
@@ -78,7 +89,7 @@ export function examine(input,ref){
  }));
  return {total:input.rows.length,bad:badRows.size,good:input.rows.length-badRows.size,required,filled,findings,pending};
 }
-export function rulesText(f){return [f.required==='conditional'?`Wajib jika ${f.conditionField} = ${f.conditionValue}`:'',!f.zero&&['integer','decimal'].includes(f.type)?'Nol tidak diizinkan':'',f.values?.length?`Nilai: ${f.values.join(', ')}`:'',!empty(f.min)?`Min. ${f.min}`:'',!empty(f.max)?`Maks. ${f.max}`:'',f.unique?'Unik':'',f.type==='date'?f.format:''].filter(Boolean).join(' · ')||'—';}
+export function rulesText(f){return [f.required==='conditional'?`Wajib jika ${conditionsOf(f).map(c=>`${c.field} = ${c.value}`).join(' DAN ')}`:'',!f.zero&&['integer','decimal'].includes(f.type)?'Nol tidak diizinkan':'',f.values?.length?`Nilai: ${f.values.join(', ')}`:'',!empty(f.min)?`Min. ${f.min}`:'',!empty(f.max)?`Maks. ${f.max}`:'',f.unique?'Unik':'',f.type==='date'?f.format:''].filter(Boolean).join(' · ')||'—';}
 export function canAccess(exam,uid){return exam.owner===uid||exam.share==='all'||exam.share==='selected'&&exam.recipients.includes(uid);}
 export function identity(exam){return JSON.stringify([exam.ref.id,exam.input.sheet,exam.input.header,exam.input.headers,exam.input.rows]);}
 export function groupExams(exams){const groups=new Map();[...exams].sort((a,b)=>b.end.localeCompare(a.end)).forEach(e=>{const key=identity(e);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(e);});return [...groups.values()];}
